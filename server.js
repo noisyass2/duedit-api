@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 var apis = require('./api/api.js');
+const PORT = process.env.PORT || 5000
 
 app.get('/',(req,res) => { res.send("pasok") })
 .get('/api',apis.getVersion)
@@ -10,5 +11,5 @@ app.get('/',(req,res) => { res.send("pasok") })
 .get('/api/getState', apis.getState)
 .get('/api/getSummary', apis.getSummary)
 .get('/api/getMyBets', apis.getMyBets)
-.listen(8888,() => {console.log('started')});
+.listen(PORT,() => {console.log('started')});
 

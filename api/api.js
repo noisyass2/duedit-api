@@ -1,15 +1,25 @@
 const fs = require('fs');
-var db = { 
-    acts : [],
-    state: {}
-}
+var dbs = [];
 
-function updateState(){
+
+function makeid(length) {
+    var result           = '';
+    var characters       = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+    var charactersLength = characters.length;
+    for ( var i = 0; i < length; i++ ) {
+       result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+ }
+
+function updateState(db){
     var state = {
         bets : [
 
-        ]
+        ],
+        players : []
     }
+
     db.acts.forEach(act => {
         var bet = state.bets.filter((p) => {return p.name == act.name && p.bet == act.bet})
         if(bet.length == 1)
@@ -24,14 +34,21 @@ function updateState(){
             state.bets.push(newBet);
         }
     });
+    state.players = {...db.players};
 
     db.state = state;
 }
 
-function updateTotal(bet){
-    var acts = db.acts.filter((p) => {return p.name == bet.name});
-    foreach
+function getDB(name) {
+    var found = dbs.filter((p) => {return p.name == name});
+    if(found.length == 1)
+    {
+        return found[0];
+    }else{
+        return null;
+    }
 }
+
 
 module.exports = {
     getVersion : (req,res) => {
@@ -39,62 +56,132 @@ module.exports = {
     },
 
     addAct : (req,res) => {
-        console.log(req.query);
-        var bet = {
-            name : req.query.name,
-            amount: parseInt(req.query.amt),
-            bet : req.query.bet
+        // console.log(req.query);
+        var db = getDB(req.query.db)
+        if(db){
+            console.log(db)
+            var bet = {
+                name : req.query.name,
+                amount: parseInt(req.query.amt),
+                bet : req.query.bet
+            }
+            db.acts.push(bet);
+            updateState(db);
+            console.log(db);
+            res.send(db);
+        }else{
+            res.send("DB does not exist")
         }
-        db.acts.push(bet);
-        updateState();
-        console.log(db);
-        res.send(db);
     },
 
     saveDB : (req,res) => {
-        console.log("saving db");
+        console.log("saving dbs");
 
-        fs.writeFileSync("db.db", JSON.stringify(db));
+        fs.writeFileSync("dbs.db", JSON.stringify(dbs));
         res.send("DB Saved")
     },
 
     loadDB : (req,res) => {
         console.log("loading db");
-        db  =JSON.parse(fs.readFileSync("db.db"));
-        res.send(db);
+        dbs  =JSON.parse(fs.readFileSync("dbs.db"));
+        res.send(dbs);
     },
 
     getState : (req,res) => {
         console.log("getting state");
-
-        res.send(db.state)
+        var db = getDB(req.query.db)
+        if(db){
+            res.send(db.state)
+        }else{
+            res.send("DB does not exist")
+        }
     },
 
     getSummary : (req,res) => {
         console.log('summary requested');
         var summary = []
-        db.state.bets.forEach(bet => {
-            var player = summary.filter(s => { return s.name == bet.bet});
-            if(player.length == 0)
-            {
-                var newPlayer = {
-                    name : bet.bet,
-                    bettors : [bet.name]
+        var db = getDB(req.query.db)
+        if(db){
+            db.state.bets.forEach(bet => {
+                var player = summary.filter(s => { return s.name == bet.bet});
+                if(player.length == 0)
+                {
+                    var newPlayer = {
+                        name : bet.bet,
+                        bettors : [bet.name]
+                    }
+                    summary.push(newPlayer)
+                }else{
+                    player[0].bettors.push(bet.name);
                 }
-                summary.push(newPlayer)
-            }else{
-                player[0].bettors.push(bet.name);
-            }
-        })
+            })
 
-        res.send(summary);
-
+            res.send(summary);
+        }else{
+            res.send("DB does not exist")
+        }
     },
 
     getMyBets : (req,res) => {
         console.log('getting my bets')
         var mybets = [];
-        var bets = db.state.bets.filter(s => {return s.name == req.query.name})
-        res.send(bets);
+        var db = getDB(req.query.db)
+        if(db){
+            var bets = db.state.bets.filter(s => {return s.name == req.query.name})
+            res.send(bets);
+        }else{
+            res.send("DB does not exist")
+        }
+    },
+
+    newRound : (req,res) => {
+        console.log("new round")
+        db = { 
+            acts : [],
+            state: {},
+            name : makeid(5),
+            players : []
+        }
+
+        dbs.push(db);
+        res.send(db);
+    },
+
+    addPlayer : (req, res) => {
+        console.log("adding player")
+
+        var db = getDB(req.query.db)
+        if(db){
+            var playerExist = db.players.filter((p) => {return p.name == req.query.name})
+            if(playerExist.length > 0){
+                res.send("Already exists")
+            }else{
+                db.players.push({name: req.query.name})
+                updateState(db);
+                res.send(req.query.name + " added")
+            }
+           
+        }else{
+            res.send("DB not found")
+        }
+
+    },
+
+    
+    delPlayer : (req, res) => {
+        console.log("removing player")
+
+        var db = getDB(req.query.db)
+        if(db){
+            db.players = db.players.filter((p) => {return p.name != req.query.name})
+            updateState(db);
+            res.send(req.query.name + " removed")
+           
+        }else{
+           
+            res.send("DB does not exist")
+            
+        }
+
     }
 }

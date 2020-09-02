@@ -11,5 +11,8 @@ app.get('/',(req,res) => { res.send("pasok") })
 .get('/api/getState', apis.getState)
 .get('/api/getSummary', apis.getSummary)
 .get('/api/getMyBets', apis.getMyBets)
+.get('/api/newRound', apis.newRound)
+.get('/api/addPlayer', apis.addPlayer)
+.get('/api/delPlayer', apis.delPlayer)
 .listen(PORT,() => {console.log('started')});
 

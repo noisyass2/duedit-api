@@ -34,7 +34,7 @@ function updateState(db){
             state.bets.push(newBet);
         }
     });
-    state.players = {...db.players};
+    state.players = db.players;
 
     db.state = state;
 }
@@ -58,11 +58,11 @@ module.exports = {
     addAct : (req,res) => {
         // console.log(req.query);
         var db = getDB(req.query.db)
-        if(db){
+        if(db && !db.locked){
             console.log(db)
             var bet = {
                 name : req.query.name,
-                amount: parseInt(req.query.amt),
+                amount: req.query.amt,
                 bet : req.query.bet
             }
             db.acts.push(bet);
@@ -140,7 +140,9 @@ module.exports = {
             acts : [],
             state: {},
             name : makeid(5),
-            players : []
+            display: req.query.display,
+            players : [],
+            locked: false
         }
 
         dbs.push(db);
@@ -158,6 +160,7 @@ module.exports = {
             }else{
                 db.players.push({name: req.query.name})
                 updateState(db);
+                
                 res.send(req.query.name + " added")
             }
            
@@ -183,5 +186,93 @@ module.exports = {
             
         }
 
+    },
+
+    lockGame: (req,res) => {
+        console.log("locking game")
+        var db = getDB(req.query.db)
+        if(db){
+            db.locked = true;
+            updateState(db);
+            fs.writeFileSync("dbs.db", JSON.stringify(dbs));
+            res.send(req.query.db + " locked")
+        }
+        else{
+           
+            res.send("DB does not exist")
+            
+        }
+    },
+
+    unlockGame: (req,res) => {
+        console.log("unlocking game")
+        var db = getDB(req.query.db)
+        if(db){
+            db.locked = false;
+            updateState(db);
+            fs.writeFileSync("dbs.db", JSON.stringify(dbs));
+            res.send(req.query.db + " locked")
+        }
+        else{
+           
+            res.send("DB does not exist")
+            
+        }
+    },
+
+    getDBS : (req,res) => {
+        console.log("getting DBS")
+        res.send(dbs)
+    },
+
+
+    delBet : (req,res) => {
+        console.log("deleting bet")
+        var db = getDB(req.query.db)
+        if(db){
+            db.acts =  db.acts.filter(p => !(p.name == req.query.name && p.bet == req.query.bet))
+            updateState(db);
+            //fs.writeFileSync("dbs.db", JSON.stringify(dbs));
+            res.send(req.query.name + " to " + req.query.bet + " removed")
+        }
+        else{
+           
+            res.send("DB does not exist")
+            
+        }
+    },
+
+    loadTestData : (req,res) => {
+        console.log("deleting bet")
+        var db = getDB(req.query.db)
+        if(db){
+            var ps = [];
+            for (let i = 0; i < 5; i++) {
+                ps.push(makeid(7))                
+            }
+
+            ps.forEach(p => {
+                //addbet
+                var bet = {
+                    name : p,
+                    amount: "" +  Math.floor(Math.random() * 20),
+                    bet : db.players[Math.floor(Math.random() * db.players.length)].name
+                }
+                console.log("adding")
+                console.log(bet)
+                db.acts.push(bet);
+            });
+
+            updateState(db);
+            //fs.writeFileSync("dbs.db", JSON.stringify(dbs));
+            res.send(req.query.name + " to " + req.query.bet + " removed")
+        }
+        else{
+           
+            res.send("DB does not exist")
+            
+        }
     }
+   
+   
 }

@@ -14,6 +14,7 @@ function makeid(length) {
 
 function updateState(db){
     var state = {
+        name: db.name,
         bets : [
 
         ],

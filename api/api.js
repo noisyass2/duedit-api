@@ -18,7 +18,8 @@ function updateState(db){
         bets : [
 
         ],
-        players : []
+        players : [],
+        locked: db.locked
     }
 
     db.acts.forEach(act => {
@@ -159,7 +160,7 @@ module.exports = {
             if(playerExist.length > 0){
                 res.send("Already exists")
             }else{
-                db.players.push({name: req.query.name})
+                db.players.push({name: req.query.name, win:false})
                 updateState(db);
                 
                 res.send(req.query.name + " added")
@@ -178,8 +179,35 @@ module.exports = {
         var db = getDB(req.query.db)
         if(db){
             db.players = db.players.filter((p) => {return p.name != req.query.name})
+
+            //remove bets
+            db.acts = db.acts.filter((p) => {return p.bet != req.query.name})
+            
             updateState(db);
             res.send(req.query.name + " removed")
+           
+        }else{
+           
+            res.send("DB does not exist")
+            
+        }
+
+    },
+
+    winPlayer : (req, res) => {
+        console.log("tagging winner")
+
+        var db = getDB(req.query.db)
+        if(db){
+            var playerExist = db.players.filter((p) => {return p.name == req.query.name})
+            if(playerExist.length > 0){
+                db.players = db.players.map((p) => p.name == req.query.name ? {...p, win : !p.win} : p)
+                updateState(db)
+                res.send(req.query.name + " win?" + playerExist.win)
+            }else{
+                
+                res.send(req.query.name + " not exist")
+            }
            
         }else{
            
